@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Card Collection OS - Login</title>
+<style>
+  body { font-family: -apple-system, sans-serif; background: #0f1115; color: #e8e8ea; display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0; }
+  form { background: #161922; border: 1px solid #23262e; border-radius: 12px; padding: 1.5rem; width: 280px; }
+  h1 { font-size: 1.1rem; margin: 0 0 1rem; }
+  input { width: 100%; padding: 0.6rem; border-radius: 8px; border: 1px solid #2c2f38; background: #0f1115; color: #e8e8ea; box-sizing: border-box; }
+  button { width: 100%; margin-top: 0.75rem; padding: 0.6rem; border-radius: 8px; border: none; background: #3b6fed; color: white; font-weight: 600; cursor: pointer; }
+  .error { color: #ff6b6b; font-size: 0.85rem; margin-top: 0.5rem; }
+</style>
+</head>
+<body>
+  <form id="login-form">
+    <h1>Card Collection OS</h1>
+    <input type="password" id="passcode" placeholder="Passcode" autofocus required />
+    <button type="submit">Enter</button>
+    <div class="error" id="error"></div>
+  </form>
+  <script>
+    document.getElementById("login-form").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const passcode = document.getElementById("passcode").value;
+      const errEl = document.getElementById("error");
+      errEl.textContent = "";
+      const res = await fetch("/api/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ passcode }),
+      });
+      if (res.ok) {
+        window.location.href = "/";
+      } else {
+        errEl.textContent = "Wrong passcode.";
+      }
+    });
+  </script>
+</body>
+</html>
