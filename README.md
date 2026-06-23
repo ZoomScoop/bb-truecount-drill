@@ -25,6 +25,11 @@ paid pricing APIs (PriceCharting API, eBay Browse API, TCGplayer API) for
 automatic price pulls instead of tap-through links — same UI, just an
 automated fetch behind the existing fields.
 
+## Going live
+
+See **[SETUP.md](SETUP.md)** for the exact 10-minute, paste-and-click runbook
+(Supabase + Vercel) with values pre-filled.
+
 ## One-time setup (things only you can do)
 
 The app is built (code, schema, deploy config) and ready to go — these are

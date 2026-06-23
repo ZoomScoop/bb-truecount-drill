@@ -134,12 +134,10 @@ export function initIdentifyView() {
         image_url,
         acquisition_cost: parseFloat(document.getElementById("f-cost").value) || null,
         acquisition_date: new Date().toISOString().slice(0, 10),
-        last_market_price: undefined,
         last_listed_price: parseFloat(document.getElementById("f-market").value) || null,
         collectr_value: parseFloat(document.getElementById("f-collectr").value) || null,
         notes: document.getElementById("f-notes").value,
       };
-      delete row.last_market_price;
 
       const { error: insertError } = await supabase.from("cards").insert(row);
       if (insertError) throw insertError;
