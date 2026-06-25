@@ -1,0 +1,547 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Elite Bidding Calculator — Western Star Auction Day</title>
+<style>
+  :root{--ink:#10201b;--muted:#6a7670;--line:#cfd8d3;--bg:#0f1512;--accent:#0b6b4a;--good:#1a9e54;--bad:#c02626;--warn:#c9821a;--card:#ffffff;--chip:#eef3f0;--t2:#0b6b4a;--t3:#1d6fa5;--t4:#7a7a52;}
+  *{box-sizing:border-box;}
+  body{font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;color:var(--ink);background:#f3f6f4;margin:0;padding:14px;}
+  .wrap{max-width:1180px;margin:0 auto;}
+  h1{font-size:19px;margin:0 0 8px;}
+  .banner{border-radius:10px;padding:9px 12px;margin-bottom:12px;font-size:12.5px;background:#fcf1e0;border:1px solid var(--warn);color:#5c3d0e;}
+  .bar{display:flex;flex-wrap:wrap;gap:10px;background:var(--card);border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin-bottom:12px;align-items:flex-end;}
+  .bar>div{display:flex;flex-direction:column;}
+  label{font-size:11px;color:var(--muted);margin-bottom:2px;text-transform:uppercase;letter-spacing:.03em;}
+  input,select{padding:6px 8px;border:1px solid var(--line);border-radius:7px;font-size:14px;background:#fff;}
+  input[type=number]{width:92px;}
+  .main{display:flex;flex-wrap:wrap;gap:12px;}
+  .col{flex:1;min-width:320px;}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px 16px;margin-bottom:12px;}
+  .lotsel{display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;}
+  .bidbox{text-align:center;padding:6px 0;}
+  .bidbox label{font-size:13px;}
+  #curBid{font-size:46px;font-weight:800;width:240px;text-align:center;padding:6px;border:2px solid var(--accent);border-radius:12px;}
+  .signal{border-radius:14px;padding:18px;text-align:center;color:#fff;margin:10px 0;}
+  .signal .word{font-size:46px;font-weight:900;letter-spacing:.02em;line-height:1;}
+  .signal .why{font-size:14px;opacity:.95;margin-top:4px;}
+  .g{background:var(--good);} .b{background:var(--bad);} .w{background:var(--warn);}
+  .reads{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+  .read{background:var(--chip);border-radius:9px;padding:8px 10px;}
+  .read .k{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.03em;}
+  .read .v{font-size:20px;font-weight:700;}
+  .v.pos{color:var(--good);} .v.neg{color:var(--bad);}
+  .hint{font-size:11.5px;color:var(--muted);}
+  button{cursor:pointer;border:none;border-radius:9px;padding:10px 14px;font-size:14px;font-weight:700;color:#fff;background:var(--accent);}
+  button.ghost{background:#e7ece9;color:var(--ink);}
+  button.tiny{padding:3px 8px;font-size:11px;border-radius:6px;}
+  table{border-collapse:collapse;width:100%;font-size:12px;margin-top:6px;}
+  th,td{border-bottom:1px solid var(--line);padding:5px 6px;text-align:left;}
+  td.num,th.num{text-align:right;white-space:nowrap;}
+  .budgetbar{height:16px;background:#e7ece9;border-radius:9px;overflow:hidden;margin:6px 0;}
+  .budgetfill{height:100%;background:var(--accent);width:0%;transition:width .2s;}
+  .totrow{font-weight:800;}
+  .small{font-size:11px;color:var(--muted);}
+  .meta{margin-top:10px;padding:10px;border-radius:9px;background:var(--chip);font-size:12.5px;display:none;}
+  .meta.show{display:block;}
+  .badge{display:inline-block;padding:2px 8px;border-radius:20px;font-size:10.5px;font-weight:800;color:#fff;letter-spacing:.02em;}
+  .badge.t2{background:var(--t2);} .badge.t3{background:var(--t3);} .badge.t4{background:var(--t4);}
+  .gradechip{display:inline-block;padding:1px 7px;border-radius:6px;font-size:10.5px;font-weight:700;background:#fff;border:1px solid var(--line);}
+  .metarow{margin-top:5px;}
+  .wsbox{overflow-x:auto;}
+  #wsTable{min-width:920px;}
+  #wsTable input[type=number]{width:64px;padding:4px 6px;font-size:12px;}
+  .toolbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;justify-content:space-between;margin-bottom:8px;}
+  .toolbar .right{display:flex;gap:8px;align-items:center;}
+  a.lk{color:var(--accent);text-decoration:none;font-weight:700;}
+  #quickJump{width:220px;}
+  .kbdhint{font-size:11px;color:var(--muted);margin-top:6px;}
+  kbd{background:#e7ece9;border-radius:4px;padding:1px 5px;font-size:10.5px;font-family:inherit;}
+</style>
+</head>
+<body>
+<div class="wrap">
+<h1>Elite Bidding Calculator <span class="small">— Western Star Auction, June 27 · type the current bid, watch the light. Bids are yours to place; this only does the math.</span></h1>
+
+<div class="banner">⚠ <strong>Confirm iCollector's actual buyer's premium before bidding.</strong> Defaulted to 15% below — many online auction houses run 18–20%, and that materially changes every all-in number on this page.</div>
+
+<div class="bar">
+  <div><label>Buyer's premium %</label><input type="number" id="bp" value="15" step="0.5"></div>
+  <div><label>Tax %</label><input type="number" id="tax" value="12" step="0.5"></div>
+  <div><label>Reseller exempt</label><select id="exempt"><option value="0">No (tax applies)</option><option value="1">Yes (no tax)</option></select></div>
+  <div><label>Selling fees %</label><input type="number" id="fee" value="15" step="0.5"></div>
+  <div><label>Day budget $ (all-in)</label><input type="number" id="budget" value="10000" step="100" style="width:110px"></div>
+  <div><label>Quick jump (# or keyword) <kbd>/</kbd></label><input type="text" id="quickJump" list="lotList" placeholder="e.g. 781 or spider-woman"></div>
+  <datalist id="lotList"></datalist>
+</div>
+
+<div class="main">
+  <div class="col">
+    <div class="card">
+      <div class="lotsel">
+        <div style="flex:1;min-width:160px"><label>Category</label><select id="catSel" style="width:100%"></select></div>
+        <div style="flex:2;min-width:200px"><label>Lot</label><select id="lotSel" style="width:100%"></select></div>
+      </div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:10px">
+        <div><label>Your ceiling (hammer $)</label><input type="number" id="ceil"></div>
+        <div><label>Resale low $</label><input type="number" id="rl"></div>
+        <div><label>Resale high $</label><input type="number" id="rh"></div>
+      </div>
+      <div class="hint" style="margin-top:6px">Fields pre-fill from our research — edit any of them live if inspection changed the picture.</div>
+      <div id="lotMeta" class="meta">
+        <span id="metaTier"></span> <span id="metaGrade" class="gradechip"></span>
+        <div class="metarow" id="metaContents"></div>
+        <div class="metarow"><span class="hint">Stretch ceiling: <strong id="metaStretch">—</strong></span> · <a id="metaLink" class="lk" href="#" target="_blank" rel="noopener">View on iCollector ↗</a></div>
+      </div>
+    </div>
+
+    <div class="card bidbox">
+      <label>Current bid (hammer $)</label><br>
+      <input type="number" id="curBid" value="0" step="5">
+      <div style="margin-top:8px;display:flex;gap:8px;justify-content:center;flex-wrap:wrap">
+        <button class="ghost" onclick="bump(-5)">-5</button>
+        <button class="ghost" onclick="bump(5)">+5</button>
+        <button class="ghost" onclick="bump(10)">+10</button>
+        <button class="ghost" onclick="bump(25)">+25</button>
+      </div>
+      <div class="kbdhint">Shortcuts (when no field is focused): <kbd>+</kbd>/<kbd>-</kbd> bump $5 · <kbd>w</kbd> mark won · <kbd>/</kbd> jump to lot</div>
+    </div>
+
+    <div id="signal" class="signal g"><div class="word">BID</div><div class="why"></div></div>
+  </div>
+
+  <div class="col">
+    <div class="card">
+      <div class="reads">
+        <div class="read"><div class="k">All-in cost at this bid</div><div class="v" id="oAllIn">$0</div><div class="hint" id="oAllInH"></div></div>
+        <div class="read"><div class="k">Headroom to ceiling (hammer)</div><div class="v" id="oHead">$0</div><div class="hint" id="oHeadH"></div></div>
+        <div class="read"><div class="k">Headroom to stretch ceiling</div><div class="v" id="oStretchHead">—</div><div class="hint" id="oStretchHeadH">research stretch limit</div></div>
+        <div class="read"><div class="k">Net resale (after fees)</div><div class="v" id="oNet">$0</div><div class="hint" id="oNetH">low – high</div></div>
+        <div class="read"><div class="k">Projected profit (mid)</div><div class="v" id="oProf">$0</div><div class="hint" id="oProfH">low – high</div></div>
+        <div class="read"><div class="k">Net ROI at this bid</div><div class="v" id="oRoi">0%</div><div class="hint">profit ÷ all-in cost</div></div>
+        <div class="read"><div class="k">Break-even hammer</div><div class="v" id="oBE">$0</div><div class="hint">bid past this = loss at resale-low</div></div>
+        <div class="read"><div class="k">Max bid for target ROI <input type="number" id="roiTarget" value="100" step="5" style="width:52px;padding:2px 4px;font-size:12px;margin-left:4px">%</div><div class="v" id="oMaxRoi">$0</div><div class="hint">walk-away hammer at that ROI</div></div>
+      </div>
+      <div style="margin-top:12px;text-align:center">
+        <button onclick="markWon()">✓ Mark WON at current bid</button>
+        <button class="ghost" onclick="exportCSV()">⬇ Export CSV</button>
+        <button class="ghost" onclick="resetSession()">Reset session</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;font-size:13px;font-weight:700">
+        <span>Session spend (all-in)</span><span id="spent">$0</span>
+      </div>
+      <div class="budgetbar"><div class="budgetfill" id="bfill"></div></div>
+      <div style="display:flex;justify-content:space-between;font-size:12px">
+        <span class="small">Budget left: <strong id="left">$10,000</strong></span>
+        <span class="small">Projected profit (mid): <strong id="sProf" style="color:var(--good)">$0</strong></span>
+      </div>
+      <table id="wonTable">
+        <tr><th>Lot</th><th class="num">Hammer</th><th class="num">All-in</th><th class="num">Proj. profit</th><th></th></tr>
+      </table>
+    </div>
+  </div>
+</div>
+
+<div class="card">
+  <div class="toolbar">
+    <h2 style="font-size:15px;margin:0">Western Star Comics — Watchlist (Jun 27)</h2>
+    <div class="right">
+      <label style="display:inline;text-transform:none;font-size:12px"><input type="checkbox" id="winOnly" style="width:auto;vertical-align:middle"> Winning only</label>
+    </div>
+  </div>
+  <div class="wsbox">
+  <table id="wsTable">
+    <tr><th>Lot</th><th>Title</th><th>Tier</th><th>Grade</th><th class="num">Current bid</th><th class="num">Ceiling</th><th class="num">Stretch</th><th class="num">Headroom</th><th class="num">Proj. profit (low)</th><th></th><th></th></tr>
+  </table>
+  </div>
+  <div class="hint" style="margin-top:8px" id="wsTotals"></div>
+</div>
+
+<p class="small">Defaults: 15% buyer's premium, 12% tax (toggle exempt if reseller-registered), 15% selling fees. All-in cost = hammer × (1+premium) × (1+tax). Net resale = listed × (1 − fees). Confirm the auction's real premium % and plug it in before you start. Session auto-saves to this browser — refreshing the page will not lose your bids.</p>
+</div>
+
+<script>
+var WS_CAT = "Comics — Western Star (Jun 27)";
+var LOTS = [
+ // Machinery & Welders
+ {c:"Machinery & Welders",l:"Pro Spot i4s Spot Welder (S+)",ceil:2500,rl:6000,rh:10000},
+ {c:"Machinery & Welders",l:"Pro Spot SP5 Smart MIG Welder (S+)",ceil:2500,rl:3000,rh:6000},
+ {c:"Machinery & Welders",l:"Festool Dust Extractor w/ Sander (S+)",ceil:500,rl:600,rh:1000},
+ {c:"Machinery & Welders",l:"General 90-170B Bandsaw (S)",ceil:600,rl:1200,rh:2000},
+ {c:"Machinery & Welders",l:"Magnum Industrial Planer (S)",ceil:500,rl:1000,rh:2000},
+ {c:"Machinery & Welders",l:"Magnum Dust Extraction Unit (S)",ceil:600,rl:1200,rh:2500},
+ {c:"Machinery & Welders",l:"Magnum Router Table (A+)",ceil:300,rl:600,rh:1200},
+ {c:"Machinery & Welders",l:"King Jointer Planer (S)",ceil:500,rl:1000,rh:2000},
+ {c:"Machinery & Welders",l:"Magnum Thickness Planer (S)",ceil:500,rl:1000,rh:2000},
+ {c:"Machinery & Welders",l:"Magnum Floor Drill Press (A+)",ceil:250,rl:500,rh:1000},
+ {c:"Machinery & Welders",l:"General Morticing Drill (A+)",ceil:250,rl:500,rh:1000},
+ // Snap-On / Blue Point
+ {c:"Snap-On / Tools",l:"929 Hex Key Sockets - Metric",ceil:70,rl:100,rh:175},
+ {c:"Snap-On / Tools",l:"930 Hex Key Sockets - SAE",ceil:70,rl:100,rh:175},
+ {c:"Snap-On / Tools",l:"931 3 Pairs Pliers",ceil:50,rl:75,rh:125},
+ {c:"Snap-On / Tools",l:"932 Ratcheting Wrenches & Ratchet (S)",ceil:100,rl:150,rh:300},
+ {c:"Snap-On / Tools",l:"933 Metric Combination Wrenches (S)",ceil:150,rl:200,rh:400},
+ {c:"Snap-On / Tools",l:"934 Combination Metric Wrenches (S)",ceil:150,rl:200,rh:400},
+ {c:"Snap-On / Tools",l:"935 Combination SAE Wrenches (S)",ceil:150,rl:200,rh:400},
+ {c:"Snap-On / Tools",l:"936 3 Open End Wrenches",ceil:40,rl:60,rh:120},
+ {c:"Snap-On / Tools",l:"937 4 Blue Point Snap Ring Plier Sets",ceil:60,rl:100,rh:180},
+ {c:"Snap-On / Tools",l:"938 4 Blue Point Snap Ring Plier Sets",ceil:60,rl:100,rh:180},
+ {c:"Snap-On / Tools",l:"939 2 Pry Bars",ceil:50,rl:60,rh:140},
+ {c:"Snap-On / Tools",l:"940 Blue Point Flat Bar",ceil:25,rl:30,rh:60},
+ {c:"Snap-On / Tools",l:"941 4 Box End Wrenches (A+)",ceil:60,rl:100,rh:180},
+ {c:"Snap-On / Tools",l:"942 5 Line Wrenches (A+)",ceil:75,rl:120,rh:225},
+ {c:"Snap-On / Tools",l:"943 Set of Box End Wrenches",ceil:125,rl:175,rh:350},
+ {c:"Snap-On / Tools",l:"944 Blue Point Digital Tester",ceil:50,rl:75,rh:150},
+ {c:"Snap-On / Tools",l:"945 Impact Driver Set",ceil:80,rl:100,rh:200},
+ {c:"Snap-On / Tools",l:"946 Blue Point Flaring Tool Kit",ceil:100,rl:125,rh:250},
+ {c:"Snap-On / Tools",l:"947 Blue Point Chain Wrench",ceil:50,rl:75,rh:150},
+ {c:"Snap-On / Tools",l:"948 Sm. Toolbox w/ 1/4\" Sockets (A+)",ceil:150,rl:200,rh:400},
+ {c:"Snap-On / Tools",l:"949 Punch Set",ceil:60,rl:75,rh:175},
+ {c:"Snap-On / Tools",l:"950 Blue Point 3/8\" Butterfly Impact",ceil:80,rl:125,rh:250},
+ {c:"Snap-On / Tools",l:"951 Mini Wrench Set",ceil:120,rl:150,rh:300},
+ {c:"Snap-On / Tools",l:"952 Assorted Long Hex Key Sockets (A+)",ceil:100,rl:150,rh:250},
+ {c:"Snap-On / Tools",l:"953 3 Blue Point Snap Ring Pliers",ceil:60,rl:75,rh:150},
+ {c:"Snap-On / Tools",l:"954 Compression Gauge Tester",ceil:125,rl:150,rh:300},
+ {c:"Snap-On / Tools",l:"955 Blue Point Flaring Tool Kit",ceil:100,rl:125,rh:250},
+ {c:"Snap-On / Tools",l:"956 Blue Point Tubing Bender Kit",ceil:100,rl:125,rh:250},
+ {c:"Snap-On / Tools",l:"957 Equa Fuel Pump Tester",ceil:75,rl:100,rh:200},
+ {c:"Snap-On / Tools",l:"958 Metric Tap & Die Set (S)",ceil:250,rl:300,rh:600},
+ {c:"Snap-On / Tools",l:"959 SAE Tap & Die Set (S)",ceil:250,rl:300,rh:600},
+ {c:"Snap-On / Tools",l:"960 Test Light",ceil:30,rl:40,rh:80},
+ {c:"Snap-On / Tools",l:"961 1/4\" Drive Torque Wrench (A+)",ceil:100,rl:150,rh:250},
+ {c:"Snap-On / Tools",l:"962 Deep 1/2\" Impact Sockets (A+)",ceil:200,rl:250,rh:500},
+ {c:"Snap-On / Tools",l:"963 Drill Bits",ceil:100,rl:100,rh:250},
+ {c:"Snap-On / Tools",l:"964 7 Swivel Sockets 3/8\" (A+)",ceil:250,rl:300,rh:500},
+ // Jewelry
+ {c:"Jewelry",l:"349 14K White Gold Ring w/ 7 Diamonds (A+)",ceil:120,rl:250,rh:450},
+ {c:"Jewelry",l:"350 14K 2-Piece Diamond Ring Set (A+)",ceil:180,rl:400,rh:700},
+ {c:"Jewelry",l:"351 14K Gold Ring w/ Pearl",ceil:40,rl:100,rh:175},
+ {c:"Jewelry",l:"352 14K Ring w/ Green Stones",ceil:75,rl:175,rh:300},
+ {c:"Jewelry",l:"353 10K White Gold Solitaire Diamond",ceil:30,rl:125,rh:250},
+ {c:"Jewelry",l:"354 10K Ring w/ Multi-Coloured Stones",ceil:120,rl:250,rh:450},
+ {c:"Jewelry",l:"355 10K Ring w/ Blue Stone",ceil:125,rl:275,rh:500},
+ {c:"Jewelry",l:"356 10K Gold Bracelet",ceil:90,rl:180,rh:250},
+ {c:"Jewelry",l:"357 10K White Gold Ring w/ Diamonds",ceil:50,rl:150,rh:300},
+ {c:"Jewelry",l:"358 10K Gold Pendant w/ Bull",ceil:50,rl:125,rh:200},
+ {c:"Jewelry",l:"359 10K Ring",ceil:50,rl:125,rh:225},
+ {c:"Jewelry",l:"360 14K White Gold Bracelet w/ Black Stones (S)",ceil:225,rl:500,rh:800},
+ {c:"Jewelry",l:"361 Sterling Ring w/ 14K Leaf",ceil:10,rl:40,rh:100},
+ {c:"Jewelry",l:"363 14K Gold Earrings w/ Pink Stones",ceil:75,rl:150,rh:300},
+ {c:"Jewelry",l:"364 .925 Silver Ring w/ Green Stone",ceil:10,rl:40,rh:90},
+ {c:"Jewelry",l:"365 Men's 10K Gold Band w/ Diamonds (S)",ceil:225,rl:500,rh:900},
+ {c:"Jewelry",l:"366 10K White Gold Heart Pendant w/ Diamonds",ceil:35,rl:125,rh:250},
+ {c:"Jewelry",l:"367 Pair .925 Silver Bangles",ceil:25,rl:75,rh:150},
+ {c:"Jewelry",l:"371 10K Gold Bracelet (S)",ceil:225,rl:450,rh:650},
+ {c:"Jewelry",l:"376 .925 Silver Bracelet",ceil:15,rl:50,rh:100},
+ {c:"Jewelry",l:"383 .925 Silver 18\" Necklace",ceil:20,rl:60,rh:120},
+ {c:"Jewelry",l:"385 .925 Silver 18\" Chain",ceil:25,rl:75,rh:140},
+ {c:"Jewelry",l:"410 Sterling Silver Picture Frame",ceil:15,rl:40,rh:100},
+ {c:"Jewelry",l:"413 Sterling Silver Spoons (7 pcs)",ceil:100,rl:250,rh:450},
+ // Cameras
+ {c:"Cameras",l:"160 Nikon D70s + 24-120mm (B)",ceil:60,rl:125,rh:225},
+ {c:"Cameras",l:"161 4 Lenses incl. fast prime (A)",ceil:125,rl:300,rh:600},
+ {c:"Cameras",l:"162 4 Lenses incl. Zuiko 50/1.4 (A)",ceil:100,rl:250,rh:500},
+ {c:"Cameras",l:"163 4 Lenses incl. Nikon 24mm f/2.8D (A+)",ceil:150,rl:350,rh:700},
+ {c:"Cameras",l:"164 4 Lenses + teleconverters (A)",ceil:100,rl:250,rh:500},
+ {c:"Cameras",l:"165 Nikon D300 + MB-D10 + 55-200 (A)",ceil:125,rl:275,rh:450},
+ {c:"Cameras",l:"166 3 Lenses + Minolta (B)",ceil:40,rl:100,rh:250},
+ {c:"Cameras",l:"167 Nikon D200 + grip + 18-55 + TC (A)",ceil:100,rl:200,rh:375},
+ {c:"Cameras",l:"168 4 Lenses - best bundle (A+)",ceil:125,rl:350,rh:650},
+ {c:"Cameras",l:"169 2 Flashes + 2 Vivitar lenses (C)",ceil:30,rl:75,rh:125},
+ {c:"Cameras",l:"170 4 Lenses incl. DX 40 Macro (A)",ceil:125,rl:250,rh:500},
+ {c:"Cameras",l:"171 5 Lenses incl. Konica Hexanon 40/1.8 (B)",ceil:75,rl:200,rh:400},
+ {c:"Cameras",l:"175 5 Cameras incl. Asahiflex/Pentax KM (A)",ceil:100,rl:250,rh:550},
+ {c:"Cameras",l:"176 4 Lenses incl. Nikon wide-angle (A)",ceil:100,rl:250,rh:500},
+ {c:"Cameras",l:"178 2 Tripods (C)",ceil:25,rl:75,rh:150},
+ {c:"Cameras",l:"179 Accessories incl. Nikon ES-1 (B)",ceil:40,rl:150,rh:350},
+ {c:"Cameras",l:"180 Heavy-duty large lens (B)",ceil:30,rl:100,rh:400},
+ // Comics — Western Star (verified, June 27 iCollector auction)
+ {c:WS_CAT,lot:781,title:"Vintage horror comics",l:"Lot 781 — Vintage horror comics",contents:"Grimm's Ghost Stories, Ghost Stories, From Beyond, Ghost Manor",rl:175,rh:450,max:45,stretch:56,grade:"A+",ceil:45,bid:0,tier:"T2 Strong Buy",url:"https://www.icollector.com/1_i60352936"},
+ {c:WS_CAT,lot:895,title:"Vintage comics",l:"Lot 895 — Vintage comics",contents:"Scary Tales, Classics Illustrated, Bonanza, Turok",rl:150,rh:400,max:40,stretch:50,grade:"A",ceil:40,bid:5,tier:"T2 Strong Buy",url:"https://www.icollector.com/1_i60353050"},
+ {c:WS_CAT,lot:21,title:"Incredible Hulk (VERIFIED)",l:"Lot 21 — Incredible Hulk (VERIFIED)",contents:"#119 (1969 SILVER AGE, Maximus) FN/VF ~$45-90 ⭐; #138 (Sandman) VG/FN ~$15-25; #208 (1977) INCOMPLETE-missing pages ~$0",rl:70,rh:120,max:40,stretch:50,grade:"B+",ceil:40,bid:6,tier:"T2 Strong Buy",url:"https://www.icollector.com/1_i60345118"},
+ {c:WS_CAT,lot:468,title:"Mixed Gold Key comics",l:"Lot 468 — Mixed Gold Key comics",contents:"Tarzan, Mickey Mouse, Uncle Scrooge, Twilight Zone",rl:125,rh:300,max:38,stretch:48,grade:"A+",ceil:38,bid:5,tier:"T2 Strong Buy",url:"https://www.icollector.com/1_i60345565"},
+ {c:WS_CAT,lot:4,title:"Gold Key vintage comics",l:"Lot 4 — Gold Key vintage comics",contents:"Lost in Space, Star Trek, Fantastic Voyage, Bonanza",rl:120,rh:250,max:35,stretch:44,grade:"A",ceil:35,bid:6,tier:"T2 Strong Buy",url:"https://www.icollector.com/1_i60345101"},
+ {c:WS_CAT,lot:495,title:"DC comics",l:"Lot 495 — DC comics",contents:"Aquaman, Demon, GI Combat, Secret Origins, Shadow",rl:125,rh:275,max:35,stretch:44,grade:"A",ceil:35,bid:0,tier:"T2 Strong Buy",url:"https://www.icollector.com/1_i60345592"},
+ {c:WS_CAT,lot:801,title:"Vintage DC/Charlton/War/Western",l:"Lot 801 — Vintage DC/Charlton/War/Western",contents:"Jonah Hex (WWT #20 - collectible character, NOT a key) + Legion of S-H #1 (1973) + Sgt Rock/Jimmy Olsen #123&114/Lois Lane #83/Action #461 (commons). SPECIALIST-FLAGGED at preview = expect hype bidding.",rl:90,rh:180,max:55,stretch:69,grade:"B+",ceil:60,bid:5,tier:"T2 Strong Buy",url:"https://www.icollector.com/1_i60352956"},
+ {c:WS_CAT,lot:911,title:"Vintage comics",l:"Lot 911 — Vintage comics",contents:"Unexpected, Plop!, Metal Men, Tarzan, Sugar & Spike",rl:125,rh:350,max:32,stretch:40,grade:"A",ceil:32,bid:5,tier:"T2 Strong Buy",url:"https://www.icollector.com/1_i60353066"},
+ {c:WS_CAT,lot:548,title:"Marvel: Spider-Woman/Iron Man/Cap",l:"Lot 548 — Marvel: Spider-Woman/Iron Man/Cap",contents:"Marvel Spotlight #32 (1st SPIDER-WOMAN), GS Iron Man, Cap #134",rl:100,rh:200,max:30,stretch:38,grade:"A-",ceil:30,bid:0,tier:"T2 Strong Buy",url:"https://www.icollector.com/1_i60345645"},
+ {c:WS_CAT,lot:27,title:"Fantastic Four comics",l:"Lot 27 — Fantastic Four comics",contents:"FF #94, FF #104 (Bronze)",rl:100,rh:225,max:28,stretch:35,grade:"A",ceil:28,bid:0,tier:"T2 Strong Buy",url:"https://www.icollector.com/1_i60345124"},
+ {c:WS_CAT,lot:28,title:"Gold Key Boris Karloff comics",l:"Lot 28 — Gold Key Boris Karloff comics",contents:"Karloff Tales of Mystery (horror)",rl:100,rh:250,max:28,stretch:35,grade:"A",ceil:28,bid:0,tier:"T2 Strong Buy",url:"https://www.icollector.com/1_i60345125"},
+ {c:WS_CAT,lot:547,title:"Assorted comics",l:"Lot 547 — Assorted comics",contents:"Uncle Scrooge, Flintstones, Hanna-Barbera, Disney",rl:100,rh:250,max:28,stretch:35,grade:"A",ceil:28,bid:0,tier:"T2 Strong Buy",url:"https://www.icollector.com/1_i60345644"},
+ {c:WS_CAT,lot:803,title:"Vintage Western comics",l:"Lot 803 — Vintage Western comics",contents:"Kid Colt, Rawhide Kid, Black Rider, Two-Gun Kid, Sgt Fury",rl:100,rh:250,max:28,stretch:35,grade:"A",ceil:28,bid:8,tier:"T2 Strong Buy",url:"https://www.icollector.com/1_i60352958"},
+ {c:WS_CAT,lot:8,title:"Wonder Woman comics",l:"Lot 8 — Wonder Woman comics",contents:"WW #262 (~1980), DC Super Hero Summer Special",rl:80,rh:175,max:28,stretch:35,grade:"B+",ceil:28,bid:0,tier:"T3 Solid Value",url:"https://www.icollector.com/1_i60345105"},
+ {c:WS_CAT,lot:910,title:"Vintage comics",l:"Lot 910 — Vintage comics",contents:"Dr. Spektor, Freak Brothers, Tales Beyond, Classics Illus.",rl:100,rh:275,max:28,stretch:35,grade:"B+",ceil:28,bid:5,tier:"T3 Solid Value",url:"https://www.icollector.com/1_i60353065"},
+ {c:WS_CAT,lot:467,title:"Mixed comics lot",l:"Lot 467 — Mixed comics lot",contents:"Monkees, B&V, Yogi Bear, Beetle Bailey",rl:75,rh:175,max:22,stretch:28,grade:"B",ceil:22,bid:0,tier:"T3 Solid Value",url:"https://www.icollector.com/1_i60345564"},
+ {c:WS_CAT,lot:496,title:"Vintage comics",l:"Lot 496 — Vintage comics",contents:"Richie Rich Billions, Bullwinkle, Little Archie",rl:80,rh:200,max:22,stretch:28,grade:"B+",ceil:22,bid:0,tier:"T3 Solid Value",url:"https://www.icollector.com/1_i60345593"},
+ {c:WS_CAT,lot:847,title:"Vintage comics",l:"Lot 847 — Vintage comics",contents:"Mickey Mouse, Gyro, Blondie, Action, Barney Bear",rl:80,rh:200,max:22,stretch:28,grade:"B+",ceil:22,bid:0,tier:"T3 Solid Value",url:"https://www.icollector.com/1_i60353002"},
+ {c:WS_CAT,lot:802,title:"Richie Rich comics",l:"Lot 802 — Richie Rich comics",contents:"Success/Cash/Fortunes, Bank Books",rl:75,rh:175,max:20,stretch:25,grade:"B",ceil:20,bid:5,tier:"T3 Solid Value",url:"https://www.icollector.com/1_i60352957"},
+ {c:WS_CAT,lot:521,title:"Vintage TV/cartoon comics",l:"Lot 521 — Vintage TV/cartoon comics",contents:"Richie Rich, Dennis, Partridge, Wacky Races",rl:60,rh:150,max:18,stretch:23,grade:"C+",ceil:18,bid:0,tier:"T4 Cheap Only",url:"https://www.icollector.com/1_i60345618"},
+ {c:WS_CAT,lot:696,title:"Archie comics",l:"Lot 696 — Archie comics",contents:"Archie/Jughead/B&V digests",rl:60,rh:140,max:16,stretch:20,grade:"C+",ceil:16,bid:0,tier:"T4 Cheap Only",url:"https://www.icollector.com/1_i60352851"},
+ {c:WS_CAT,lot:867,title:"Vintage Gold Key/Atlas/cartoon",l:"Lot 867 — Vintage Gold Key/Atlas/cartoon",contents:"Fat Albert, Little Lulu, Little Dot, Beep Beep, Tragg",rl:60,rh:140,max:16,stretch:20,grade:"C+",ceil:16,bid:0,tier:"T4 Cheap Only",url:"https://www.icollector.com/1_i60353022"},
+ {c:WS_CAT,lot:896,title:"Jughead & other comics",l:"Lot 896 — Jughead & other comics",contents:"Jughead, B&V, Millie the Model, That Wilkin Boy",rl:60,rh:150,max:16,stretch:20,grade:"C+",ceil:16,bid:0,tier:"T4 Cheap Only",url:"https://www.icollector.com/1_i60353051"},
+ {c:WS_CAT,lot:33,title:"Charlton Phantom comics",l:"Lot 33 — Charlton Phantom comics",contents:"2 Phantom issues",rl:40,rh:100,max:12,stretch:15,grade:"C+",ceil:12,bid:0,tier:"T4 Cheap Only",url:"https://www.icollector.com/1_i60345130"},
+ {c:WS_CAT,lot:36,title:"Archie comics",l:"Lot 36 — Archie comics",contents:"Archie/Jughead/B&V bulk",rl:40,rh:110,max:12,stretch:15,grade:"C+",ceil:12,bid:0,tier:"T4 Cheap Only",url:"https://www.icollector.com/1_i60345133"},
+ {c:"Custom",l:"— Custom lot (enter values) —",ceil:0,rl:0,rh:0}
+];
+
+var won=[];
+var watchBids={};
+var curLot=null;
+var STORE_KEY='wsBidCalc_v2';
+
+function money(n){return (n<0?"-$":"$")+Math.abs(Math.round(n)).toLocaleString();}
+function val(id){return parseFloat(document.getElementById(id).value)||0;}
+function costFactor(){var bp=val('bp')/100;var ex=document.getElementById('exempt').value==='1';var tax=ex?0:val('tax')/100;return (1+bp)*(1+tax);}
+
+function saveState(){
+  var s={
+    settings:{bp:val('bp'),tax:val('tax'),exempt:document.getElementById('exempt').value,fee:val('fee'),budget:val('budget'),roiTarget:val('roiTarget')},
+    won:won,
+    watch:watchBids
+  };
+  try{localStorage.setItem(STORE_KEY,JSON.stringify(s));}catch(e){}
+}
+function loadState(){
+  try{
+    var raw=localStorage.getItem(STORE_KEY);
+    if(!raw)return;
+    var s=JSON.parse(raw);
+    if(s.settings){
+      document.getElementById('bp').value=s.settings.bp!=null?s.settings.bp:15;
+      document.getElementById('tax').value=s.settings.tax!=null?s.settings.tax:12;
+      document.getElementById('exempt').value=s.settings.exempt||'0';
+      document.getElementById('fee').value=s.settings.fee!=null?s.settings.fee:15;
+      document.getElementById('budget').value=s.settings.budget!=null?s.settings.budget:10000;
+      document.getElementById('roiTarget').value=s.settings.roiTarget!=null?s.settings.roiTarget:100;
+    }
+    won=s.won||[];
+    watchBids=s.watch||{};
+  }catch(e){}
+}
+
+function buildCats(){
+  var cats=[];LOTS.forEach(function(o){if(cats.indexOf(o.c)<0)cats.push(o.c);});
+  var cs=document.getElementById('catSel');cs.innerHTML='';
+  cats.forEach(function(c){var op=document.createElement('option');op.value=c;op.textContent=c;cs.appendChild(op);});
+  buildJumpList();
+  buildLots();
+}
+function buildJumpList(){
+  var dl=document.getElementById('lotList');dl.innerHTML='';
+  LOTS.forEach(function(o){if(o.c==='Custom')return;var op=document.createElement('option');op.value=o.l;dl.appendChild(op);});
+}
+function buildLots(){
+  var c=document.getElementById('catSel').value;var ls=document.getElementById('lotSel');ls.innerHTML='';
+  LOTS.filter(function(o){return o.c===c;}).forEach(function(o){var op=document.createElement('option');op.value=o.l;op.textContent=o.l;ls.appendChild(op);});
+  loadLot();
+}
+function loadLot(overrideBid){
+  var c=document.getElementById('catSel').value;var l=document.getElementById('lotSel').value;
+  var o=LOTS.find(function(x){return x.c===c&&x.l===l;});
+  curLot=o||null;
+  if(o){
+    document.getElementById('ceil').value=o.ceil;document.getElementById('rl').value=o.rl;document.getElementById('rh').value=o.rh;
+    var seed=(overrideBid!=null)?overrideBid:(o.lot!=null&&watchBids[o.lot]!=null?watchBids[o.lot]:(o.bid||0));
+    document.getElementById('curBid').value=seed;
+  }
+  var meta=document.getElementById('lotMeta');
+  if(o&&o.tier){
+    meta.className='meta show';
+    var tcls=o.tier.indexOf('T2')===0?'t2':(o.tier.indexOf('T3')===0?'t3':'t4');
+    document.getElementById('metaTier').innerHTML='<span class="badge '+tcls+'">'+o.tier+'</span>';
+    document.getElementById('metaGrade').textContent='Grade '+o.grade;
+    document.getElementById('metaContents').textContent=o.contents||'';
+    document.getElementById('metaStretch').textContent=money(o.stretch||o.ceil)+' hammer';
+    document.getElementById('metaLink').href=o.url||'#';
+  } else {
+    meta.className='meta';
+  }
+  calc();
+}
+function jumpToLot(label){
+  var o=LOTS.find(function(x){return x.l===label;});
+  if(!o)return;
+  document.getElementById('catSel').value=o.c;
+  buildLots();
+  document.getElementById('lotSel').value=o.l;
+  loadLot();
+}
+function bump(n){var e=document.getElementById('curBid');e.value=Math.max(0,(parseFloat(e.value)||0)+n);calc();}
+
+function calc(){
+  var bid=val('curBid'),ceil=val('ceil'),rl=val('rl'),rh=val('rh');
+  var cf=costFactor(),fee=val('fee')/100;
+  var allIn=bid*cf;
+  var netL=rl*(1-fee),netH=rh*(1-fee),netM=(netL+netH)/2;
+  var profL=netL-allIn,profM=netM-allIn,profH=netH-allIn;
+  var roi=allIn>0?profM/allIn*100:0;
+  var head=ceil-bid;
+  var be=cf>0?netL/cf:0; // hammer at which profit-low hits 0
+  var stretch=curLot&&curLot.stretch?curLot.stretch:null;
+  var roiTarget=val('roiTarget');
+  var maxRoiBid=cf>0?netL/((1+roiTarget/100)*cf):0;
+  document.getElementById('oAllIn').textContent=money(allIn);
+  document.getElementById('oAllInH').textContent='ceiling all-in '+money(ceil*cf);
+  document.getElementById('oHead').textContent=money(head);
+  document.getElementById('oHead').className='v '+(head>0?'pos':'neg');
+  document.getElementById('oHeadH').textContent=head>0?'room left to bid':'OVER your ceiling';
+  if(stretch!=null){
+    var sHead=stretch-bid;
+    document.getElementById('oStretchHead').textContent=money(sHead);
+    document.getElementById('oStretchHead').className='v '+(sHead>0?'pos':'neg');
+    document.getElementById('oStretchHeadH').textContent='hard stop '+money(stretch);
+  } else {
+    document.getElementById('oStretchHead').textContent='—';
+    document.getElementById('oStretchHead').className='v';
+    document.getElementById('oStretchHeadH').textContent='no stretch ceiling for this lot';
+  }
+  document.getElementById('oNet').textContent=money(netL)+' – '+money(netH);
+  document.getElementById('oProf').textContent=money(profM);
+  document.getElementById('oProf').className='v '+(profM>0?'pos':'neg');
+  document.getElementById('oProfH').textContent=money(profL)+' – '+money(profH);
+  document.getElementById('oRoi').textContent=Math.round(roi)+'%';
+  document.getElementById('oRoi').className='v '+(roi>0?'pos':'neg');
+  document.getElementById('oBE').textContent=money(be);
+  document.getElementById('oMaxRoi').textContent=money(maxRoiBid);
+  document.getElementById('oMaxRoi').className='v '+(maxRoiBid>=bid?'pos':'neg');
+  // signal — uses stretch ceiling as the hard stop when the lot has one
+  var sig=document.getElementById('signal');var word=sig.querySelector('.word');var why=sig.querySelector('.why');
+  var hardStop=stretch!=null?stretch:ceil;
+  var cls='g',w='BID',y='Clear margin — bid on.';
+  if(bid<=0){cls='g';w='READY';y='Enter the current bid.';}
+  else if(bid>=hardStop){cls='b';w='STOP';y='At/over '+(stretch!=null?'stretch ceiling':'your ceiling')+' ('+money(hardStop)+' hammer). Hands off.';}
+  else if(profM<=0){cls='b';w='STOP';y='No margin left at this price after fees.';}
+  else if(bid>=ceil){cls='w';w='HOLD';y='Over target ceiling but within stretch — '+money(hardStop-bid)+' left, diminishing ROI. Last bid only.';}
+  else if(bid>=0.85*ceil||roi<25){cls='w';w='HOLD';y='Thin — '+money(head)+' to ceiling, ROI '+Math.round(roi)+'%. Last bid only.';}
+  else {cls='g';w='BID';y='Good margin — '+money(head)+' headroom, '+Math.round(roi)+'% ROI.';}
+  sig.className='signal '+cls;word.textContent=w;why.textContent=y;
+  saveState();
+}
+
+function markWon(){
+  var l=document.getElementById('lotSel').value,bid=val('curBid');
+  if(bid<=0){return;}
+  var cf=costFactor(),fee=val('fee')/100,rl=val('rl'),rh=val('rh');
+  won.push({l:l,lot:curLot?curLot.lot:null,bid:bid,rl:rl,rh:rh,cf:cf,fee:fee});
+  renderWon();
+}
+function rowAllIn(o){return o.bid*o.cf;}
+function rowProfit(o){var netM=((o.rl+o.rh)/2)*(1-o.fee);return netM-rowAllIn(o);}
+function renderWon(){
+  var t=document.getElementById('wonTable');
+  t.innerHTML='';
+  var hdr=t.insertRow();hdr.innerHTML='<th>Lot</th><th class="num">Hammer</th><th class="num">All-in</th><th class="num">Proj. profit</th><th></th>';
+  var spent=0,prof=0;
+  won.forEach(function(o,i){
+    var allIn=rowAllIn(o),p=rowProfit(o);
+    spent+=allIn;prof+=p;
+    var r=t.insertRow();
+    var tdLot=r.insertCell();tdLot.textContent=o.l;
+    var tdBid=r.insertCell();tdBid.className='num';
+    var bidInput=document.createElement('input');
+    bidInput.type='number';bidInput.value=o.bid;bidInput.style.width='64px';bidInput.style.fontSize='12px';bidInput.style.padding='3px 5px';
+    bidInput.addEventListener('change',function(){o.bid=parseFloat(this.value)||0;renderWon();});
+    tdBid.appendChild(bidInput);
+    var tdAllIn=r.insertCell();tdAllIn.className='num';tdAllIn.textContent=money(allIn);
+    var tdProf=r.insertCell();tdProf.className='num';tdProf.style.color=p>0?'#1a9e54':'#c02626';tdProf.textContent=money(p);
+    var tdX=r.insertCell();
+    var xBtn=document.createElement('button');xBtn.className='ghost tiny';xBtn.textContent='x';
+    xBtn.addEventListener('click',function(){rmWon(i);});
+    tdX.appendChild(xBtn);
+  });
+  if(won.length){var r=t.insertRow();r.className='totrow';r.innerHTML='<td>TOTAL ('+won.length+')</td><td></td><td class="num">'+money(spent)+'</td><td class="num" style="color:#1a9e54">'+money(prof)+'</td><td></td>';}
+  var budget=val('budget');var left=budget-spent;
+  document.getElementById('spent').textContent=money(spent);
+  document.getElementById('left').textContent=money(left);
+  document.getElementById('left').style.color=left<0?'#c02626':'#10201b';
+  document.getElementById('sProf').textContent=money(prof);
+  var pct=budget>0?Math.min(100,spent/budget*100):0;
+  var bf=document.getElementById('bfill');bf.style.width=pct+'%';bf.style.background=left<0?'#c02626':(pct>85?'#c9821a':'#0b6b4a');
+  saveState();
+}
+function rmWon(i){won.splice(i,1);renderWon();}
+function resetSession(){if(confirm('Clear all won lots?')){won=[];renderWon();}}
+
+function renderWatchlist(){
+  var t=document.getElementById('wsTable');
+  t.innerHTML='';
+  var hdr=t.insertRow();
+  hdr.innerHTML='<th>Lot</th><th>Title</th><th>Tier</th><th>Grade</th><th class="num">Current bid</th><th class="num">Ceiling</th><th class="num">Stretch</th><th class="num">Headroom</th><th class="num">Proj. profit (low)</th><th></th><th></th>';
+  var fee=val('fee')/100,cf=costFactor();
+  var winOnly=document.getElementById('winOnly').checked;
+  var expTotal=0,profTotal=0;
+  LOTS.filter(function(o){return o.c===WS_CAT;}).forEach(function(o){
+    var curBid=watchBids[o.lot]!=null?watchBids[o.lot]:(o.bid||0);
+    if(winOnly&&curBid<=0)return;
+    var allIn=curBid*cf,netLow=o.rl*(1-fee),head=o.ceil-curBid,profLow=netLow-allIn;
+    if(curBid>0){expTotal+=allIn;profTotal+=profLow;}
+    var r=t.insertRow();
+    var tdLot=r.insertCell();tdLot.textContent=o.lot;
+    var tdTitle=r.insertCell();tdTitle.textContent=o.title;tdTitle.title=o.contents;
+    var tcls=o.tier.indexOf('T2')===0?'t2':(o.tier.indexOf('T3')===0?'t3':'t4');
+    var tdTier=r.insertCell();tdTier.innerHTML='<span class="badge '+tcls+'">'+o.tier.replace('T2 ','').replace('T3 ','').replace('T4 ','')+'</span>';
+    var tdGrade=r.insertCell();tdGrade.innerHTML='<span class="gradechip">'+o.grade+'</span>';
+    var tdBid=r.insertCell();tdBid.className='num';
+    var bidInput=document.createElement('input');bidInput.type='number';bidInput.value=curBid;
+    bidInput.addEventListener('change',function(){watchBids[o.lot]=parseFloat(this.value)||0;renderWatchlist();});
+    tdBid.appendChild(bidInput);
+    var tdCeil=r.insertCell();tdCeil.className='num';tdCeil.textContent=money(o.ceil);
+    var tdStretch=r.insertCell();tdStretch.className='num';tdStretch.textContent=money(o.stretch);
+    var tdHead=r.insertCell();tdHead.className='num';tdHead.style.color=head>0?'#1a9e54':'#c02626';tdHead.textContent=money(head);
+    var tdProf=r.insertCell();tdProf.className='num';tdProf.style.color=profLow>0?'#1a9e54':'#c02626';tdProf.textContent=money(profLow);
+    var tdLink=r.insertCell();tdLink.innerHTML='<a class="lk" href="'+o.url+'" target="_blank" rel="noopener">↗</a>';
+    var tdLoad=r.insertCell();
+    var loadBtn=document.createElement('button');loadBtn.className='ghost tiny';loadBtn.textContent='Load';
+    loadBtn.addEventListener('click',function(){jumpToLot(o.l);window.scrollTo({top:0,behavior:'smooth'});});
+    tdLoad.appendChild(loadBtn);
+  });
+  document.getElementById('wsTotals').textContent='Current exposure on winning lots: '+money(expTotal)+' · Projected profit if held at resale-low: '+money(profTotal);
+  saveState();
+}
+
+function exportCSV(){
+  var lines=['Section,Lot,Title,Hammer/Bid,All-in,Resale Low,Resale High,Ceiling,Stretch,Proj Profit'];
+  won.forEach(function(o){
+    lines.push(['WON',o.lot||'',o.l,o.bid,Math.round(rowAllIn(o)),o.rl,o.rh,'','',Math.round(rowProfit(o))].map(csvEsc).join(','));
+  });
+  var fee=val('fee')/100,cf=costFactor();
+  LOTS.filter(function(o){return o.c===WS_CAT;}).forEach(function(o){
+    var curBid=watchBids[o.lot]!=null?watchBids[o.lot]:(o.bid||0);
+    var allIn=curBid*cf,profLow=o.rl*(1-fee)-allIn;
+    lines.push(['WATCHLIST',o.lot,o.title,curBid,Math.round(allIn),o.rl,o.rh,o.ceil,o.stretch,Math.round(profLow)].map(csvEsc).join(','));
+  });
+  var blob=new Blob([lines.join('\n')],{type:'text/csv'});
+  var a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='western_star_bidding_export.csv';
+  document.body.appendChild(a);a.click();document.body.removeChild(a);
+}
+function csvEsc(v){v=String(v==null?'':v);if(v.indexOf(',')>=0||v.indexOf('"')>=0){v='"'+v.replace(/"/g,'""')+'"';}return v;}
+
+document.addEventListener('keydown',function(e){
+  var tag=(document.activeElement.tagName||'').toLowerCase();
+  if(tag==='input'||tag==='select'||tag==='textarea')return;
+  if(e.key==='+'){bump(5);}
+  else if(e.key==='-'){bump(-5);}
+  else if(e.key.toLowerCase()==='w'){markWon();}
+  else if(e.key==='/'){e.preventDefault();document.getElementById('quickJump').focus();}
+});
+
+['bp','tax','exempt','fee','budget','ceil','rl','rh','curBid','roiTarget'].forEach(function(id){document.getElementById(id).addEventListener('input',calc);document.getElementById(id).addEventListener('change',calc);});
+document.getElementById('budget').addEventListener('input',function(){renderWon();});
+document.getElementById('catSel').addEventListener('change',buildLots);
+document.getElementById('lotSel').addEventListener('change',function(){loadLot();});
+document.getElementById('winOnly').addEventListener('change',renderWatchlist);
+document.getElementById('quickJump').addEventListener('change',function(){jumpToLot(this.value);this.value='';});
+['bp','tax','exempt','fee'].forEach(function(id){document.getElementById(id).addEventListener('change',renderWatchlist);});
+
+loadState();
+buildCats();
+calc();
+renderWon();
+renderWatchlist();
+</script>
+</body>
+</html>
