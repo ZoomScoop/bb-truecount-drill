@@ -64,6 +64,9 @@
 <div class="wrap">
 <h1>Elite Bidding Calculator <span class="small">— Western Star Auction, June 27 · type the current bid, watch the light. Bids are yours to place; this only does the math.</span></h1>
 
+<div id="jsError" class="banner" style="display:none;background:#fde2e2;border-color:var(--bad);color:#7a1414;"></div>
+<noscript><div class="banner" style="background:#fde2e2;border-color:var(--bad);color:#7a1414;">⚠ This page requires JavaScript and your browser/preview isn't running it. If you opened this from Files, Messages, or Mail, use Share → Open in Safari (or Chrome) instead of the preview screen.</div></noscript>
+
 <div class="banner">⚠ <strong>Confirm iCollector's actual buyer's premium before bidding.</strong> Defaulted to 15% below — many online auction houses run 18–20%, and that materially changes every all-in number on this page.</div>
 
 <div class="bar">
@@ -72,8 +75,11 @@
   <div><label>Reseller exempt</label><select id="exempt"><option value="0">No (tax applies)</option><option value="1">Yes (no tax)</option></select></div>
   <div><label>Selling fees %</label><input type="number" id="fee" value="15" step="0.5"></div>
   <div><label>Day budget $ (all-in)</label><input type="number" id="budget" value="10000" step="100" style="width:110px"></div>
-  <div><label>Quick jump (# or keyword) <kbd>/</kbd></label><input type="text" id="quickJump" list="lotList" placeholder="e.g. 781 or spider-woman"></div>
-  <datalist id="lotList"></datalist>
+  <div style="position:relative">
+    <label>Quick jump (# or keyword) <kbd>/</kbd></label>
+    <input type="text" id="quickJump" autocomplete="off" placeholder="e.g. 781 or spider-woman">
+    <div id="jumpResults" style="display:none;position:absolute;top:100%;left:0;z-index:20;background:#fff;border:1px solid var(--line);border-radius:8px;box-shadow:0 4px 14px rgba(0,0,0,.15);min-width:260px;max-height:260px;overflow-y:auto;"></div>
+  </div>
 </div>
 
 <div class="main">
@@ -165,6 +171,12 @@
 </div>
 
 <script>
+window.addEventListener('error',function(e){
+  var el=document.getElementById('jsError');
+  if(!el)return;
+  el.style.display='block';
+  el.textContent='⚠ Script error — '+e.message+' (line '+e.lineno+'). Try reloading, or open this file directly in Safari/Chrome rather than a preview screen.';
+});
 var WS_CAT = "Comics — Western Star (Jun 27)";
 var LOTS = [
  // Machinery & Welders
@@ -327,12 +339,32 @@ function buildCats(){
   var cats=[];LOTS.forEach(function(o){if(cats.indexOf(o.c)<0)cats.push(o.c);});
   var cs=document.getElementById('catSel');cs.innerHTML='';
   cats.forEach(function(c){var op=document.createElement('option');op.value=c;op.textContent=c;cs.appendChild(op);});
-  buildJumpList();
   buildLots();
 }
-function buildJumpList(){
-  var dl=document.getElementById('lotList');dl.innerHTML='';
-  LOTS.forEach(function(o){if(o.c==='Custom')return;var op=document.createElement('option');op.value=o.l;dl.appendChild(op);});
+function jumpableLots(){
+  return LOTS.filter(function(o){return o.c!=='Custom';});
+}
+function renderJumpResults(query){
+  var box=document.getElementById('jumpResults');
+  query=(query||'').trim().toLowerCase();
+  if(!query){box.style.display='none';box.innerHTML='';return;}
+  var matches=jumpableLots().filter(function(o){return o.l.toLowerCase().indexOf(query)>=0;}).slice(0,8);
+  if(!matches.length){box.style.display='none';box.innerHTML='';return;}
+  box.innerHTML='';
+  matches.forEach(function(o){
+    var row=document.createElement('div');
+    row.textContent=o.l;
+    row.style.padding='8px 10px';row.style.cursor='pointer';row.style.fontSize='13px';row.style.borderBottom='1px solid var(--line)';
+    row.addEventListener('mouseenter',function(){row.style.background='var(--chip)';});
+    row.addEventListener('mouseleave',function(){row.style.background='#fff';});
+    row.addEventListener('click',function(){
+      jumpToLot(o.l);
+      document.getElementById('quickJump').value='';
+      box.style.display='none';box.innerHTML='';
+    });
+    box.appendChild(row);
+  });
+  box.style.display='block';
 }
 function buildLots(){
   var c=document.getElementById('catSel').value;var ls=document.getElementById('lotSel');ls.innerHTML='';
@@ -534,7 +566,22 @@ document.getElementById('budget').addEventListener('input',function(){renderWon(
 document.getElementById('catSel').addEventListener('change',buildLots);
 document.getElementById('lotSel').addEventListener('change',function(){loadLot();});
 document.getElementById('winOnly').addEventListener('change',renderWatchlist);
-document.getElementById('quickJump').addEventListener('change',function(){jumpToLot(this.value);this.value='';});
+var qj=document.getElementById('quickJump');
+qj.addEventListener('input',function(){renderJumpResults(this.value);});
+qj.addEventListener('keydown',function(e){
+  if(e.key==='Enter'){
+    var first=jumpableLots().filter(function(o){return o.l.toLowerCase().indexOf(qj.value.trim().toLowerCase())>=0;})[0];
+    if(first){jumpToLot(first.l);}
+    qj.value='';document.getElementById('jumpResults').style.display='none';
+  } else if(e.key==='Escape'){
+    qj.value='';document.getElementById('jumpResults').style.display='none';
+  }
+});
+document.addEventListener('click',function(e){
+  if(e.target!==qj && !document.getElementById('jumpResults').contains(e.target)){
+    document.getElementById('jumpResults').style.display='none';
+  }
+});
 ['bp','tax','exempt','fee'].forEach(function(id){document.getElementById(id).addEventListener('change',renderWatchlist);});
 
 loadState();
